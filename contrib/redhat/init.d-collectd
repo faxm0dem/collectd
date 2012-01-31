@@ -14,21 +14,28 @@
 
 RETVAL=0
 ARGS=""
-prog="collectdmon"
+prog="/usr/sbin/collectdmon"
 service="collectd"
 CONFIG=/etc/collectd.conf
 COLLECTD=/usr/sbin/collectd
-COLLECTDMONPID=/var/run/collectdmon.pid
+COLLECTDMONPIDIR="/var/run"
+COLLECTDMONPID="$COLLECTDMONPIDIR/collectdmon.pid"
+RUNAS=collectd
 
-if [ -r /etc/default/$prog ]; then
-	. /etc/default/$prog
+if [ -r /etc/sysconfig/$service ]; then
+	. /etc/sysconfig/$service
 fi
+
+if [ ! -d $COLLECTDMONPIDIR ]; then
+	mkdir $COLLECTDMONPIDIR
+fi
+chown $RUNAS: $COLLECTDMONPIDIR
 
 start () {
 	echo -n $"Starting collectd: "
 	if [ -r "$CONFIG" ]
 	then
-		daemon $prog -P $COLLECTDMONPID -c $COLLECTD -- -C "$CONFIG"
+		daemon --user "${RUNAS-root}" $prog -P $COLLECTDMONPID -c $COLLECTD -- -C "$CONFIG"
 		RETVAL=$?
 		echo
 		[ $RETVAL -eq 0 ] && touch /var/lock/subsys/$service

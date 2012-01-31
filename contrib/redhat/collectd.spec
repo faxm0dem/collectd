@@ -12,7 +12,7 @@ BuildRoot:	%{_tmppath}/%{name}-%{version}-root
 BuildPrereq:	lm_sensors-devel, rrdtool-devel, libpcap-devel, net-snmp-devel, libstatgrab-devel, libxml2-devel, libiptcdata-devel
 # libcurl deps
 BuildPrereq:	curl-devel,libidn-devel,openssl-devel
-Requires:	rrdtool, perl-Regexp-Common, libstatgrab
+Requires:	perl-Regexp-Common, libstatgrab
 Packager:	RightScale <support@rightscale.com>
 Vendor:		collectd development team <collectd@verplant.org>
 
@@ -39,6 +39,21 @@ Requires:	collectd = %{version}, spamassassin
 %description email
 This plugin collects data provided by spamassassin.
 
+%package ipmi
+Summary:  ipmi-plugin for collectd.
+Group:    System Environment/Daemons
+Requires: collectd = %{version}, OpenIPMI-libs
+BuildRequires: OpenIPMI-devel
+%description ipmi
+This plugin for collectd provides ipmi plugin.
+
+%package iptables
+Summary:	iptables-plugin for collectd.
+Group:		System Environment/Daemons
+Requires:	collectd = %{version}
+%description iptables
+This plugin for collectd provides iptables
+
 %package mysql
 Summary:	mysql-module for collectd.
 Group:		System Environment/Daemons
@@ -47,12 +62,41 @@ Requires:	collectd = %{version}, mysql
 MySQL querying plugin. This plugins provides data of issued commands, called
 handlers and database traffic.
 
+%package postgresql
+Summary:        postgresql-module for collectd.
+Group:          System Environment/Daemons
+Requires:       collectd = %{version}, postgresql
+%description postgresql
+The "postgresql" plugin queries statistics from PostgreSQL databases.
+
 %package nginx
 Summary:	nginx-plugin for collectd.
 Group:		System Environment/Daemons
 Requires:	collectd = %{version}, curl
 %description nginx
 This plugin gets data provided by nginx.
+
+%package perl
+Summary:	perl-plugin for collectd.
+Group:		System Environment/Daemons
+Requires:	collectd = %{version}, perl
+BuildRequires:  libtool2-ltdl-devel > 2
+%description perl
+This plugin installs the perl interpreter plugin.
+
+%package rrdcached
+Summary:	rrdcached-plugin for collectd.
+Group:		System Environment/Daemons
+Requires:	collectd = %{version}, rrdtool >= 1.4
+%description rrdcached
+This plugin for collectd provides write plugin for rrdcached.
+
+%package rrdtool
+Summary:	rrdtool-plugin for collectd.
+Group:		System Environment/Daemons
+Requires:	collectd = %{version}, rrdtool
+%description rrdtool
+This plugin for collectd provides write plugin for rrd files.
 
 %package sensors
 Summary:	libsensors-module for collectd.
@@ -84,17 +128,18 @@ rm -rf $RPM_BUILD_ROOT
 %setup
 
 %build
-./configure CFLAGS=-"DLT_LAZY_OR_NOW='RTLD_LAZY|RTLD_GLOBAL'" --prefix=%{_prefix} --sbindir=%{_sbindir} --mandir=%{_mandir} --libdir=%{_libdir} --sysconfdir=%{_sysconfdir} \
+./configure CFLAGS="-DLT_LAZY_OR_NOW='RTLD_LAZY|RTLD_GLOBAL' -g -O0" --prefix=%{_prefix} --sbindir=%{_sbindir} --mandir=%{_mandir} --libdir=%{_libdir} --sysconfdir=%{_sysconfdir} \
     %{!?with_java:"--with-java=$JAVA_HOME --enable-java"} \
-    --disable-battery
+    --disable-battery --disable-curl_json --disable-notify_desktop --enable-debug
 make
 
 %install
+find contrib/ -name \*.cgi -or -name \*.pm -exec rm {} \;
 make install DESTDIR=$RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/etc/rc.d/init.d
-mkdir -p $RPM_BUILD_ROOT/var/www/cgi-bin
+mkdir -p $RPM_BUILD_ROOT/etc/sysconfig
 cp contrib/redhat/init.d-collectd $RPM_BUILD_ROOT/etc/rc.d/init.d/collectd
-cp contrib/collection.cgi $RPM_BUILD_ROOT/var/www/cgi-bin
+cp contrib/redhat/sysconfig-collectd $RPM_BUILD_ROOT/etc/sysconfig/collectd
 mkdir -p $RPM_BUILD_ROOT/etc/collectd.d
 mkdir -p $RPM_BUILD_ROOT/var/lib/collectd
 ### Clean up docs
@@ -113,13 +158,23 @@ echo -e '\nInclude "/etc/collectd.d"' >> $RPM_BUILD_ROOT/etc/collectd.conf
 ##Move config contribs
 cp contrib/redhat/apache.conf $RPM_BUILD_ROOT/etc/collectd.d/apache.conf
 cp contrib/redhat/email.conf $RPM_BUILD_ROOT/etc/collectd.d/email.conf
+cp contrib/redhat/ipmi.conf $RPM_BUILD_ROOT/etc/collectd.d/ipmi.conf
+cp contrib/redhat/iptables.conf $RPM_BUILD_ROOT/etc/collectd.d/iptables.conf
 cp contrib/redhat/sensors.conf $RPM_BUILD_ROOT/etc/collectd.d/sensors.conf
 cp contrib/redhat/mysql.conf $RPM_BUILD_ROOT/etc/collectd.d/mysql.conf
+cp contrib/redhat/postgresql.conf $RPM_BUILD_ROOT/etc/collectd.d/postgresql.conf
 cp contrib/redhat/nginx.conf $RPM_BUILD_ROOT/etc/collectd.d/nginx.conf
+cp contrib/redhat/perl.conf $RPM_BUILD_ROOT/etc/collectd.d/perl.conf
+cp contrib/redhat/rrdcached.conf $RPM_BUILD_ROOT/etc/collectd.d/rrdcached.conf
+cp contrib/redhat/rrdtool.conf $RPM_BUILD_ROOT/etc/collectd.d/rrdtool.conf
 cp contrib/redhat/snmp.conf $RPM_BUILD_ROOT/etc/collectd.d/snmp.conf
 
 %clean
 rm -rf $RPM_BUILD_ROOT
+
+%pre
+/usr/sbin/groupadd -g 9999 md >/dev/null 2>&1 || :
+/usr/sbin/useradd -c Monitoring\ Data -d /home/md -s /sbin/nologin -g 9999 -u 9999 md >/dev/null 2>&1 || :
 
 %post
 /sbin/chkconfig --add collectd
@@ -143,8 +198,8 @@ exit 0
 %defattr(-,root,root)
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README contrib/
 %config %attr(0644,root,root) /etc/collectd.conf
+%config %attr(0644,root,root) /etc/sysconfig/collectd
 %attr(0755,root,root) /etc/rc.d/init.d/collectd
-%attr(0755,root,root) /var/www/cgi-bin/collection.cgi
 %attr(0755,root,root) %{_sbindir}/collectd
 %attr(0755,root,root) %{_bindir}/collectd-nagios
 %attr(0755,root,root) %{_bindir}/collectdctl
@@ -162,9 +217,10 @@ exit 0
 
 # macro to grab binaries for a plugin, given a name
 %define plugin_macro() \
-%attr(0644,root,root) %{_libdir}/%{name}/%1.a \
+################## %attr(0644,root,root) %{_libdir}/%{name}/%1.a \
 %attr(0644,root,root) %{_libdir}/%{name}/%1.so* \
-%attr(0644,root,root) %{_libdir}/%{name}/%1.la
+%attr(0644,root,root) %{_libdir}/%{name}/%1.la \
+%attr(0644,root,root) %{_libdir}/%{name}/%1.a
 
 %plugin_macro apcups
 %plugin_macro ascent
@@ -176,6 +232,7 @@ exit 0
 %plugin_macro csv
 %plugin_macro curl
 %plugin_macro curl_xml
+%plugin_macro dbi
 %plugin_macro df
 %plugin_macro disk
 %plugin_macro dns
@@ -186,7 +243,7 @@ exit 0
 %plugin_macro fscache
 %plugin_macro hddtemp
 %plugin_macro interface
-%plugin_macro iptables
+%plugin_macro ipvs
 %plugin_macro irq
 %plugin_macro load
 %plugin_macro logfile
@@ -199,7 +256,6 @@ exit 0
 %plugin_macro match_value
 
 %plugin_macro mbmon
-%plugin_macro memcachec
 %plugin_macro memcached
 %plugin_macro memory
 %plugin_macro multimeter
@@ -208,12 +264,11 @@ exit 0
 %plugin_macro ntpd
 %plugin_macro openvpn
 %plugin_macro olsrd
-%plugin_macro perl
+%plugin_macro postgresql
 %plugin_macro powerdns
 %plugin_macro processes
 %plugin_macro protocols
 %plugin_macro python
-%plugin_macro rrdtool
 %plugin_macro serial
 %plugin_macro sensors
 %plugin_macro swap
@@ -232,7 +287,6 @@ exit 0
 %plugin_macro ted
 %plugin_macro thermal
 %plugin_macro threshold
-
 %plugin_macro unixsock
 %plugin_macro uptime
 %plugin_macro users
@@ -244,12 +298,6 @@ exit 0
 
 %attr(0644,root,root) %{_datadir}/%{name}/types.db
 
-%exclude %{_libdir}/perl5/5.8.8/%{_arch}-linux-thread-multi/perllocal.pod
-%attr(0644,root,root) %{_libdir}/perl5/site_perl/5.8.8/%{_arch}-linux-thread-multi/auto/Collectd/.packlist
-%attr(0644,root,root) /usr/lib/perl5/site_perl/5.8.8/Collectd.pm
-%attr(0644,root,root) /usr/lib/perl5/site_perl/5.8.8/Collectd/Unixsock.pm
-%attr(0644,root,root) /usr/lib/perl5/site_perl/5.8.8/Collectd/Plugins/OpenVZ.pm
-%attr(0644,root,root) /usr/lib/perl5/site_perl/5.8.8/Collectd/Plugins/Monitorus.pm
 %attr(0644,root,root) /usr/share/man/man3/Collectd::Unixsock.3pm.gz
 
 %exclude /usr/share/collectd/postgresql_default.conf
@@ -258,8 +306,8 @@ exit 0
 
 %if %with_java
 %files java
-/usr/share/collectd/java/collectd-api.jar
-/usr/share/collectd/java/generic-jmx.jar
+%attr(0644,root,root) /usr/share/%{name}/java/org/collectd/api/*.class
+%attr(0644,root,root) /usr/share/%{name}/java/org/collectd/java/*.class
 %plugin_macro java
 %endif
 
@@ -272,13 +320,43 @@ exit 0
 %attr(0644,root,root) %{_libdir}/%{name}/email.la
 %config %attr(0644,root,root) /etc/collectd.d/email.conf
 
+%files ipmi
+%config %attr(0644,root,root) /etc/collectd.d/ipmi.conf
+%plugin_macro ipmi
+
+%files iptables
+%config %attr(0644,root,root) /etc/collectd.d/iptables.conf
+%plugin_macro iptables
+
 %files mysql
 %config %attr(0644,root,root) /etc/collectd.d/mysql.conf
 %plugin_macro mysql
 
+%files postgresql
+%config %attr(0644,root,root) /etc/collectd.d/postgresql.conf
+%plugin_macro postgresql
+
 %files nginx
 %config %attr(0644,root,root) /etc/collectd.d/nginx.conf
 %plugin_macro nginx
+
+%files perl
+%config %attr(0644,root,root) /etc/collectd.d/perl.conf
+%exclude %{_libdir}/perl5/5.8.8/%{_arch}-linux-thread-multi/perllocal.pod
+%attr(0644,root,root) %{_libdir}/perl5/site_perl/5.8.8/%{_arch}-linux-thread-multi/auto/Collectd/.packlist
+%attr(0644,root,root) /usr/lib/perl5/site_perl/5.8.8/Collectd.pm
+%attr(0644,root,root) /usr/lib/perl5/site_perl/5.8.8/Collectd/Unixsock.pm
+%attr(0644,root,root) /usr/lib/perl5/site_perl/5.8.8/Collectd/Plugins/Monitorus.pm
+%attr(0644,root,root) /usr/lib/perl5/site_perl/5.8.8/Collectd/Plugins/OpenVZ.pm
+%plugin_macro perl
+
+%files rrdcached
+%config %attr(0644,root,root) /etc/collectd.d/rrdcached.conf
+%plugin_macro rrdcached
+
+%files rrdtool
+%config %attr(0644,root,root) /etc/collectd.d/rrdtool.conf
+%plugin_macro rrdtool
 
 %files sensors
 %attr(0644,root,root) %{_libdir}/%{name}/sensors.so*
@@ -290,9 +368,18 @@ exit 0
 %plugin_macro snmp
 
 %changelog
-* Tue Jan 03 2011 Monetate <jason.stelzer@monetate.com> 5.0.1
+* Tue Jan 17 2012 faxm0dem <faxm0dem@cpan.org> 5.0.1-1
+- new syslog-notif patch
+
+* Wed Oct 26 2011 faxm0dem <faxm0dem@cpan.org> 5.0.1-0
+- new upstream
+- iptables
+
+* Mon Sep 05 2011 faxm0dem <faxm0dem@cpan.org> 5.0.0
 - New upstream version
-- Changes to support 5.0.1
+- Added /etc/sysconfig/collectd
+- Added collectd user the daemon shall start as
+- Moved rrdtool/rrdcached/ipmi plugins to separate package
 
 * Tue Jan 04 2010 Rackspace <stu.hood@rackspace.com> 4.9.0
 - New upstream version
@@ -310,7 +397,7 @@ exit 0
 
 * Wed Jul 25 2007 Kjell Randa <Kjell.Randa@broadpark.no> 4.0.5
 - New major releas
-- Changes to support 4.0.5
+- Changes to support 4.0.5 
 
 * Wed Jan 11 2007 Iain Lea <iain@bricbrac.de> 3.11.0-0
 - fixed spec file to build correctly on fedora core
