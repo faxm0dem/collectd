@@ -18,7 +18,7 @@ prog="/usr/sbin/collectdmon"
 service="collectd"
 CONFIG=/etc/collectd.conf
 COLLECTD=/usr/sbin/collectd
-COLLECTDMONPIDIR="/var/run"
+COLLECTDMONPIDIR="/var/run/collectd"
 COLLECTDMONPID="$COLLECTDMONPIDIR/collectdmon.pid"
 RUNAS=collectd
 
