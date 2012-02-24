@@ -3,8 +3,8 @@
 
 Summary:	Statistics collection daemon for filling RRD files.
 Name:		collectd
-Version:	5.0.1
-Release:	1%{?dist}
+Version:	5.0.3
+Release:	0%{?dist}
 Source:		http://collectd.org/files/%{name}-%{version}.tar.gz
 License:	GPL
 Group:		System Environment/Daemons
@@ -368,6 +368,10 @@ exit 0
 %plugin_macro snmp
 
 %changelog
+* Fri Feb 24 2012 faxm0dem <faxm0dem@cpan.org> 5.0.3-0
+- new upstream
+- rrdcached create patch from Bruno Premont
+
 * Tue Jan 17 2012 faxm0dem <faxm0dem@cpan.org> 5.0.1-1
 - new syslog-notif patch
 
