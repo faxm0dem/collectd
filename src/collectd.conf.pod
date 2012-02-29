@@ -483,6 +483,7 @@ Synopsis:
 
  <Plugin "bind">
    URL "http://localhost:8053/"
+   ParseTime       false
    OpCodes         true
    QTypes          true
  
@@ -509,35 +510,44 @@ The bind plugin accepts the following configuration options:
 URL from which to retrieve the XML data. If not specified,
 C<http://localhost:8053/> will be used.
 
-=item B<OpCodes> I<true>|I<false>
+=item B<ParseTime> B<true>|B<false>
+
+When set to B<true>, the time provided by BIND will be parsed and used to
+dispatch the values. When set to B<false>, the local time source is queried.
+
+This setting is set to B<true> by default for backwards compatibility; setting
+this to B<false> is I<recommended> to avoid problems with timezones and
+localization.
+
+=item B<OpCodes> B<true>|B<false>
 
 When enabled, statistics about the I<"OpCodes">, for example the number of
 C<QUERY> packets, are collected.
 
 Default: Enabled.
 
-=item B<QTypes> I<true>|I<false>
+=item B<QTypes> B<true>|B<false>
 
 When enabled, the number of I<incoming> queries by query types (for example
 C<A>, C<MX>, C<AAAA>) is collected.
 
 Default: Enabled.
 
-=item B<ServerStats> I<true>|I<false>
+=item B<ServerStats> B<true>|B<false>
 
 Collect global server statistics, such as requests received over IPv4 and IPv6,
 successful queries, and failed updates.
 
 Default: Enabled.
 
-=item B<ZoneMaintStats> I<true>|I<false>
+=item B<ZoneMaintStats> B<true>|B<false>
 
 Collect zone maintenance statistics, mostly information about notifications
 (zone updates) and zone transfers.
 
 Default: Enabled.
 
-=item B<ResolverStats> I<true>|I<false>
+=item B<ResolverStats> B<true>|B<false>
 
 Collect resolver statistics, i.E<nbsp>e. statistics about outgoing requests
 (e.E<nbsp>g. queries over IPv4, lame servers). Since the global resolver
@@ -566,21 +576,21 @@ configured, no detailed view statistics will be collected.
 
 =over 4
 
-=item B<QTypes> I<true>|I<false>
+=item B<QTypes> B<true>|B<false>
 
 If enabled, the number of I<outgoing> queries by query type (e.E<nbsp>g. C<A>,
 C<MX>) is collected.
 
 Default: Enabled.
 
-=item B<ResolverStats> I<true>|I<false>
+=item B<ResolverStats> B<true>|B<false>
 
 Collect resolver statistics, i.E<nbsp>e. statistics about outgoing requests
 (e.E<nbsp>g. queries over IPv4, lame servers).
 
 Default: Enabled.
 
-=item B<CacheRRSets> I<true>|I<false>
+=item B<CacheRRSets> B<true>|B<false>
 
 If enabled, the number of entries (I<"RR sets">) in the view's cache by query
 type is collected. Negative entries (queries which resulted in an error, for
@@ -4160,6 +4170,11 @@ L<http://secure.netroedge.com/~lm78/>.
 
 =over 4
 
+=item B<SensorConfigFile> I<File>
+
+Read the I<lm_sensors> configuration from I<File>. When unset (recommended),
+the library's default will be used.
+
 =item B<Sensor> I<chip-bus-address/type-feature>
 
 Selects the name of the sensor which you want to collect or ignore, depending
@@ -4775,6 +4790,72 @@ traffic passing a socket which might be a lot less than the actual on-wire
 traffic (e.E<nbsp>g. due to headers and retransmission). If you want to
 collect on-wire traffic you could, for example, use the logging facilities of
 iptables to feed data for the guest IPs into the iptables plugin.
+
+=head2 Plugin C<write_graphite>
+
+The C<write_graphite> plugin writes data to I<Graphite>, an open-source metrics
+storage and graphing project. The plugin connects to I<Carbon>, the data layer
+of I<Graphite>, and sends data via the "line based" protocol (per default using
+portE<nbsp>2003). The data will be sent in blocks of at most 1428 bytes to
+minimize the number of network packets.
+
+Synopsis:
+
+ <Plugin write_graphite>
+   <Carbon>
+     Host "localhost"
+     Port "2003"
+     Prefix "collectd"
+   </Carbon>
+ </Plugin>
+
+=over 4
+
+=item B<Host> I<Address>
+
+Hostname or address to connect to. Defaults to C<localhost>.
+
+=item B<Port> I<Service>
+
+Service name or port number to connect to. Defaults to C<2003>.
+
+=item B<Prefix> I<String>
+
+When set, I<String> is added in front of the host name. Dots and whitespace are
+I<not> escaped in this string (see B<EscapeCharacter> below).
+
+=item B<Postfix> I<String>
+
+When set, I<String> is appended to the host name. Dots and whitespace are
+I<not> escaped in this string (see B<EscapeCharacter> below).
+
+=item B<EscapeCharacter> I<Char>
+
+I<Carbon> uses the dot (C<.>) as escape character and doesn't allow whitespace
+in the identifier. The B<EscapeCharacter> option determines which character
+dots, whitespace and control characters are replaced with. Defaults to
+underscore (C<_>).
+
+=item B<StoreRates> B<false>|B<true>
+
+If set to B<true> (the default), convert counter values to rates. If set to
+B<false> counter values are stored as is, i.E<nbsp>e. as an increasing integer
+number.
+
+=item B<SeparateInstances> B<false>|B<true>
+
+If set to B<true>, the plugin instance and type instance will be in their own
+path component, for example C<host.cpu.0.cpu.idle>. If set to B<false> (the
+default), the plugin and plugin instance (and likewise the type and type
+instance) are put into once component, for example C<host.cpu-0.cpu-idle>.
+
+=item B<AlwaysAppendDS> B<false>|B<true>
+
+If set the B<true>, append the name of the I<Data Source> (DS) to the "metric"
+identifier. If set to B<false> (the default), this is only done when there is
+more than one DS.
+
+=back
 
 =head2 Plugin C<write_http>
 
