@@ -1,5 +1,6 @@
 
 %define with_java %(test -z "$JAVA_HOME" ; echo $?)
+%define with_iptables %(rpm -q iptables-devel 2>&1 >/dev/null && echo 1 || echo 0)
 
 Summary:	Statistics collection daemon for filling RRD files.
 Name:		collectd
@@ -15,6 +16,11 @@ BuildPrereq:	curl-devel,libidn-devel,openssl-devel
 Requires:	perl-Regexp-Common, libstatgrab
 Packager:	RightScale <support@rightscale.com>
 Vendor:		collectd development team <collectd@verplant.org>
+Patch0: collectd-syslog_notif.patch
+Patch1: collectd-curl_xml.patch
+Patch2: collectd-init.patch
+Patch3: collectd-config.patch
+Patch4: collectd-rrdcached-create.patch
 
 %description
 collectd is a small daemon which collects system information periodically and
@@ -47,12 +53,23 @@ BuildRequires: OpenIPMI-devel
 %description ipmi
 This plugin for collectd provides ipmi plugin.
 
+%if %with_iptables
 %package iptables
 Summary:	iptables-plugin for collectd.
 Group:		System Environment/Daemons
 Requires:	collectd = %{version}
+BuildRequires:	iptables-devel
 %description iptables
 This plugin for collectd provides iptables
+
+%package ipvs
+Summary:	ipvs-plugin for collectd.
+Group:		System Environment/Daemons
+Requires:	collectd = %{version}
+BuildRequires:	iptables-devel
+%description ipvs
+This plugin for collectd provides ipvs
+%endif
 
 %package mysql
 Summary:	mysql-module for collectd.
@@ -126,6 +143,11 @@ in an embedded JVM.
 %prep
 rm -rf $RPM_BUILD_ROOT
 %setup
+%patch0 -p1
+%patch1 -p1
+%patch2 -p1
+%patch3 -p1
+%patch4 -p1
 
 %build
 ./configure CFLAGS="-DLT_LAZY_OR_NOW='RTLD_LAZY|RTLD_GLOBAL' -g -O0" --prefix=%{_prefix} --sbindir=%{_sbindir} --mandir=%{_mandir} --libdir=%{_libdir} --sysconfdir=%{_sysconfdir} \
@@ -159,7 +181,9 @@ echo -e '\nInclude "/etc/collectd.d"' >> $RPM_BUILD_ROOT/etc/collectd.conf
 cp contrib/redhat/apache.conf $RPM_BUILD_ROOT/etc/collectd.d/apache.conf
 cp contrib/redhat/email.conf $RPM_BUILD_ROOT/etc/collectd.d/email.conf
 cp contrib/redhat/ipmi.conf $RPM_BUILD_ROOT/etc/collectd.d/ipmi.conf
+%if %with_iptables
 cp contrib/redhat/iptables.conf $RPM_BUILD_ROOT/etc/collectd.d/iptables.conf
+%endif
 cp contrib/redhat/sensors.conf $RPM_BUILD_ROOT/etc/collectd.d/sensors.conf
 cp contrib/redhat/mysql.conf $RPM_BUILD_ROOT/etc/collectd.d/mysql.conf
 cp contrib/redhat/postgresql.conf $RPM_BUILD_ROOT/etc/collectd.d/postgresql.conf
@@ -243,7 +267,6 @@ exit 0
 %plugin_macro fscache
 %plugin_macro hddtemp
 %plugin_macro interface
-%plugin_macro ipvs
 %plugin_macro irq
 %plugin_macro load
 %plugin_macro logfile
@@ -324,9 +347,14 @@ exit 0
 %config %attr(0644,root,root) /etc/collectd.d/ipmi.conf
 %plugin_macro ipmi
 
+%if %with_iptables
 %files iptables
 %config %attr(0644,root,root) /etc/collectd.d/iptables.conf
 %plugin_macro iptables
+
+%files ipvs
+%plugin_macro ipvs
+%endif
 
 %files mysql
 %config %attr(0644,root,root) /etc/collectd.d/mysql.conf
