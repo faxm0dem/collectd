@@ -33,7 +33,11 @@ static int log_level = LOG_DEBUG;
 #else
 static int log_level = LOG_INFO;
 #endif /* COLLECT_DEBUG */
+<<<<<<< HEAD
 static int notif_severity = -1;
+=======
+static int notif_severity = 0;
+>>>>>>> 409150015a3a8265a48ecf3f7abb9f03b560c624
 
 static const char *config_keys[] =
 {
@@ -47,11 +51,22 @@ static int sl_config (const char *key, const char *value)
 	if (strcasecmp (key, "LogLevel") == 0)
 	{
 		log_level = parse_log_severity (value);
+<<<<<<< HEAD
 		if (log_level == -1) return (1);
 	}
 	else if (strcasecmp (key, "NotifyLevel") == 0)
 	{
 		notif_severity = parse_notif_severity(key);
+=======
+		if (log_level < 0)
+			return (1);
+	}
+	else if (strcasecmp (key, "NotifyLevel") == 0)
+	{
+		notif_severity = parse_notif_severity (value);
+		if (notif_severity < 0)
+			return (1);
+>>>>>>> 409150015a3a8265a48ecf3f7abb9f03b560c624
 	}
 
 	return (0);
@@ -77,6 +92,7 @@ static int sl_notification (const notification_t *n,
 		user_data_t __attribute__((unused)) *user_data)
 {
 	char  buf[1024] = "";
+<<<<<<< HEAD
 	char *buf_ptr = buf;
 	int   buf_len = sizeof (buf);
 	int status;
@@ -116,10 +132,20 @@ static int sl_notification (const notification_t *n,
 	APPEND (buf_ptr, buf_len, "message", n->message);
 
 	buf[sizeof (buf) - 1] = '\0';
+=======
+	size_t offset = 0;
+	int log_severity;
+	char *severity_string;
+	int status;
+
+	if (n->severity > notif_severity)
+		return (0);
+>>>>>>> 409150015a3a8265a48ecf3f7abb9f03b560c624
 
 	switch (n->severity)
 	{
 		case NOTIF_FAILURE:
+<<<<<<< HEAD
 			severity = LOG_ERR;
 			break;
 		case NOTIF_WARNING:
@@ -131,6 +157,54 @@ static int sl_notification (const notification_t *n,
 		default: severity = LOG_INFO;
 	}
 	sl_log (severity, buf, NULL);
+=======
+			severity_string = "FAILURE";
+			log_severity = LOG_ERR;
+			break;
+		case NOTIF_WARNING:
+			severity_string = "WARNING";
+			log_severity = LOG_WARNING;
+			break;
+		case NOTIF_OKAY:
+			severity_string = "OKAY";
+			log_severity = LOG_NOTICE;
+			break;
+		default:
+			severity_string = "UNKNOWN";
+			log_severity = LOG_ERR;
+	}
+
+#define BUFFER_ADD(...) do { \
+	status = ssnprintf (&buf[offset], sizeof (buf) - offset, \
+			__VA_ARGS__); \
+	if (status < 1) \
+		return (-1); \
+	else if (((size_t) status) >= (sizeof (buf) - offset)) \
+		return (-ENOMEM); \
+	else \
+		offset += ((size_t) status); \
+} while (0)
+
+#define BUFFER_ADD_FIELD(field) do { \
+	if (n->field[0]) \
+		BUFFER_ADD (", " #field " = %s", n->field); \
+} while (0)
+
+	BUFFER_ADD ("Notification: severity = %s", severity_string);
+	BUFFER_ADD_FIELD (host);
+	BUFFER_ADD_FIELD (plugin);
+	BUFFER_ADD_FIELD (plugin_instance);
+	BUFFER_ADD_FIELD (type);
+	BUFFER_ADD_FIELD (type_instance);
+	BUFFER_ADD_FIELD (message);
+
+#undef BUFFER_ADD_FIELD
+#undef BUFFER_ADD
+
+	buf[sizeof (buf) - 1] = '\0';
+
+	sl_log (log_severity, buf, NULL);
+>>>>>>> 409150015a3a8265a48ecf3f7abb9f03b560c624
 
 	return (0);
 } /* int sl_notification */

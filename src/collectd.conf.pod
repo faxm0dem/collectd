@@ -1822,6 +1822,31 @@ TCP-Port to connect to. Defaults to B<411>.
 
 =back
 
+=head2 Plugin C<md>
+
+The C<md plugin> collects information from Linux Software-RAID devices (md).
+
+All reported values are of the type C<md_disks>. Reported type instances are
+I<active>, I<failed> (present but not operational), I<spare> (hot stand-by) and
+I<missing> (physically absent) disks.
+
+=over 4
+
+=item B<Device> I<Device>
+
+Select md devices based on device name. The I<device name> is the basename of
+the device, i.e. the name of the block device without the leading C</dev/>.
+See B<IgnoreSelected> for more details.
+
+=item B<IgnoreSelected> B<true>|B<false>
+
+Invert device selection: If set to B<true>, all md devices B<except> those
+listed using B<Device> are collected. If B<false> (the default), only those
+listed are collected. If no configuration is given, the B<md> plugin will
+collect data from all md devices.
+
+=back
+
 =head2 Plugin C<memcachec>
 
 The C<memcachec plugin> connects to a memcached server, queries one or more
@@ -4232,6 +4257,7 @@ syslog-daemon.
 Please note that B<debug> is only available if collectd has been compiled with
 debugging support.
 
+<<<<<<< HEAD
 =item B<NotifyLevel> B<WARNING>|B<FAILURE>
 
 Controls which notifications should be sent to syslog. The default behaviour is
@@ -4240,6 +4266,16 @@ will also be sent to syslog.
 Notifications will be sent using severities based on their own levels. B<OKAY>
 and B<WARNING> will be sent using syslog B<WARNING> severity, whereas B<FAILURE>
 will yield a B<ERROR> syslog entry.
+=======
+=item B<NotifyLevel> B<OKAY>|B<WARNING>|B<FAILURE>
+
+Controls which notifications should be sent to syslog. The default behaviour is
+not to send any. Less severe notifications always imply logging more severe
+notifications: Setting this to B<OKAY> means all notifications will be sent to
+syslog, setting this to B<WARNING> will send B<WARNING> and B<FAILURE>
+notifications but will dismiss B<OKAY> notifications. Setting this option to
+B<FAILURE> will only send failures to syslog.
+>>>>>>> 409150015a3a8265a48ecf3f7abb9f03b560c624
 
 =back
 
