@@ -13,7 +13,6 @@
 . /etc/init.d/functions
 
 RETVAL=0
-ARGS=""
 prog="/usr/sbin/collectdmon"
 service="collectd"
 CONFIG=/etc/collectd.conf
@@ -43,7 +42,7 @@ start () {
 }
 stop () {
 	echo -n $"Stopping collectd: "
-	killproc $prog
+	killproc -p $COLLECTDMONPID $prog
 	RETVAL=$?
 	echo
 	[ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/$service
@@ -57,7 +56,7 @@ case "$1" in
 	stop
 	;;
   status)
-	status $prog
+	status -p $COLLECTDMONPID $prog
 	;;
   restart|reload)
 	stop

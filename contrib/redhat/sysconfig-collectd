@@ -1,6 +1,7 @@
 # These values override defaults in collectd startup script
-# CONFIG=/etc/collectd.conf
-# COLLECTD=/usr/sbin/collectd
-# COLLECTDMONPID=/var/run/collectdmon.pid
+# CONFIG="/etc/collectd.conf"
+# COLLECTD="/usr/sbin/collectd"
+# COLLECTDMONPIDIR="/var/run/collectd"
+# COLLECTDMONPID="$COLLECTDMONPIDIR/collectdmon.pid"
 RUNAS=md
 
