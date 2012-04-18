@@ -1,26 +1,22 @@
 
 %define with_java %(test -z "$JAVA_HOME" ; echo $?)
+%define rrdtool_version %(rpm -q rrdtool-devel.%{_arch} --queryformat %%{version})
 %define with_iptables %(rpm -q iptables-devel 2>&1 >/dev/null && echo 1 || echo 0)
 
 Summary:	Statistics collection daemon for filling RRD files.
 Name:		collectd
-Version:	5.0.3
-Release:	0%{?dist}
+Version:	5.1.0
+Release:	5%{?dist}
 Source:		http://collectd.org/files/%{name}-%{version}.tar.gz
 License:	GPL
 Group:		System Environment/Daemons
 BuildRoot:	%{_tmppath}/%{name}-%{version}-root
-BuildPrereq:	lm_sensors-devel, rrdtool-devel, libpcap-devel, net-snmp-devel, libstatgrab-devel, libxml2-devel, libiptcdata-devel
+BuildRequires:	lm_sensors-devel, libpcap-devel, net-snmp-devel, libstatgrab-devel, libxml2-devel, libiptcdata-devel
 # libcurl deps
-BuildPrereq:	curl-devel,libidn-devel,openssl-devel
+BuildRequires:	curl-devel,libidn-devel,openssl-devel
 Requires:	perl-Regexp-Common, libstatgrab
 Packager:	RightScale <support@rightscale.com>
 Vendor:		collectd development team <collectd@verplant.org>
-Patch0: collectd-syslog_notif.patch
-Patch1: collectd-curl_xml.patch
-Patch2: collectd-init.patch
-Patch3: collectd-config.patch
-Patch4: collectd-rrdcached-create.patch
 
 %description
 collectd is a small daemon which collects system information periodically and
@@ -30,6 +26,7 @@ every time it wants to update the values it's very fast and easy on the
 system. Also, the statistics are very fine grained since the files are updated
 every 10 seconds.
 
+%debug_package
 
 %package apache
 Summary:	apache-plugin for collectd.
@@ -45,6 +42,20 @@ Requires:	collectd = %{version}, spamassassin
 %description email
 This plugin collects data provided by spamassassin.
 
+%package ethstat
+Summary:	ethstat-module for collectd.
+Group:		System Environment/Daemons
+Requires:	collectd = %{version}
+%description ethstat
+This plugin for collectd provides ethstat
+
+%package write_graphite
+Summary:	write_graphite-module for collectd.
+Group:		System Environment/Daemons
+Requires:	collectd = %{version}
+%description write_graphite
+This plugin for collectd provides write_graphite
+
 %package ipmi
 Summary:  ipmi-plugin for collectd.
 Group:    System Environment/Daemons
@@ -58,18 +69,32 @@ This plugin for collectd provides ipmi plugin.
 Summary:	iptables-plugin for collectd.
 Group:		System Environment/Daemons
 Requires:	collectd = %{version}
-BuildRequires:	iptables-devel
+BuildRequires:  iptables-devel
 %description iptables
 This plugin for collectd provides iptables
+%endif
 
 %package ipvs
-Summary:	ipvs-plugin for collectd.
-Group:		System Environment/Daemons
-Requires:	collectd = %{version}
-BuildRequires:	iptables-devel
+Summary:        ipvs-plugin for collectd.
+Group:          System Environment/Daemons
+Requires:       collectd = %{version}
 %description ipvs
 This plugin for collectd provides ipvs
-%endif
+
+%package md
+Summary:	md-module for collectd.
+Group:		System Environment/Daemons
+Requires:	collectd = %{version}
+%description md
+This plugin for collectd provides md (linux software raid)
+
+%package modbus
+Summary:	modbus-module for collectd.
+Group:		System Environment/Daemons
+Requires:	collectd = %{version}, libmodbus
+BuildRequires:  libmodbus-devel
+%description modbus
+This plugin for collectd provides modbus
 
 %package mysql
 Summary:	mysql-module for collectd.
@@ -78,6 +103,13 @@ Requires:	collectd = %{version}, mysql
 %description mysql
 MySQL querying plugin. This plugins provides data of issued commands, called
 handlers and database traffic.
+
+%package numa
+Summary:	numa-module for collectd.
+Group:		System Environment/Daemons
+Requires:	collectd = %{version}
+%description numa
+This plugin for collectd provides numa
 
 %package postgresql
 Summary:        postgresql-module for collectd.
@@ -96,17 +128,20 @@ This plugin gets data provided by nginx.
 %package perl
 Summary:	perl-plugin for collectd.
 Group:		System Environment/Daemons
-Requires:	collectd = %{version}, perl
-BuildRequires:  libtool2-ltdl-devel > 2
+Requires:	collectd = %{version}, perl, perl(ExtUtils::Embed)
+BuildRequires:  libtool-ltdl-devel > 2, perl(ExtUtils::Embed)
 %description perl
 This plugin installs the perl interpreter plugin.
 
+%if "%{?rrdtool_version}" >= "1.4"
 %package rrdcached
 Summary:	rrdcached-plugin for collectd.
 Group:		System Environment/Daemons
 Requires:	collectd = %{version}, rrdtool >= 1.4
+BuildRequires:	rrdtool-devel
 %description rrdcached
 This plugin for collectd provides write plugin for rrdcached.
+%endif
 
 %package rrdtool
 Summary:	rrdtool-plugin for collectd.
@@ -116,7 +151,7 @@ Requires:	collectd = %{version}, rrdtool
 This plugin for collectd provides write plugin for rrd files.
 
 %package sensors
-Summary:	libsensors-module for collectd.
+ummary:	libsensors-module for collectd.
 Group:		System Environment/Daemons
 Requires:	collectd = %{version}, lm_sensors
 %description sensors
@@ -141,18 +176,16 @@ in an embedded JVM.
 %endif
 
 %prep
+%if %with_iptables
+bash -i
+%endif
 rm -rf $RPM_BUILD_ROOT
 %setup
-%patch0 -p1
-%patch1 -p1
-%patch2 -p1
-%patch3 -p1
-%patch4 -p1
 
 %build
 ./configure CFLAGS="-DLT_LAZY_OR_NOW='RTLD_LAZY|RTLD_GLOBAL' -g -O0" --prefix=%{_prefix} --sbindir=%{_sbindir} --mandir=%{_mandir} --libdir=%{_libdir} --sysconfdir=%{_sysconfdir} \
     %{!?with_java:"--with-java=$JAVA_HOME --enable-java"} \
-    --disable-battery --disable-curl_json --disable-notify_desktop --enable-debug
+    --disable-battery
 make
 
 %install
@@ -189,7 +222,9 @@ cp contrib/redhat/mysql.conf $RPM_BUILD_ROOT/etc/collectd.d/mysql.conf
 cp contrib/redhat/postgresql.conf $RPM_BUILD_ROOT/etc/collectd.d/postgresql.conf
 cp contrib/redhat/nginx.conf $RPM_BUILD_ROOT/etc/collectd.d/nginx.conf
 cp contrib/redhat/perl.conf $RPM_BUILD_ROOT/etc/collectd.d/perl.conf
+%if "%{?rrdtool_version}" >= "1.4"
 cp contrib/redhat/rrdcached.conf $RPM_BUILD_ROOT/etc/collectd.d/rrdcached.conf
+%endif
 cp contrib/redhat/rrdtool.conf $RPM_BUILD_ROOT/etc/collectd.d/rrdtool.conf
 cp contrib/redhat/snmp.conf $RPM_BUILD_ROOT/etc/collectd.d/snmp.conf
 
@@ -197,8 +232,7 @@ cp contrib/redhat/snmp.conf $RPM_BUILD_ROOT/etc/collectd.d/snmp.conf
 rm -rf $RPM_BUILD_ROOT
 
 %pre
-/usr/sbin/groupadd -g 9999 md >/dev/null 2>&1 || :
-/usr/sbin/useradd -c Monitoring\ Data -d /home/md -s /sbin/nologin -g 9999 -u 9999 md >/dev/null 2>&1 || :
+/usr/sbin/useradd -c Collectd\ Daemon -d /home/collectd -s /sbin/nologin collectd >/dev/null 2>&1 || :
 
 %post
 /sbin/chkconfig --add collectd
@@ -221,8 +255,8 @@ exit 0
 %files
 %defattr(-,root,root)
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README contrib/
-%config %attr(0644,root,root) /etc/collectd.conf
-%config %attr(0644,root,root) /etc/sysconfig/collectd
+%config(noreplace) %attr(0644,root,root) /etc/collectd.conf
+%config(noreplace) %attr(0644,root,root) /etc/sysconfig/collectd
 %attr(0755,root,root) /etc/rc.d/init.d/collectd
 %attr(0755,root,root) %{_sbindir}/collectd
 %attr(0755,root,root) %{_bindir}/collectd-nagios
@@ -287,7 +321,6 @@ exit 0
 %plugin_macro ntpd
 %plugin_macro openvpn
 %plugin_macro olsrd
-%plugin_macro postgresql
 %plugin_macro powerdns
 %plugin_macro processes
 %plugin_macro protocols
@@ -335,79 +368,92 @@ exit 0
 %endif
 
 %files apache
-%config %attr(0644,root,root) /etc/collectd.d/apache.conf
+%config(noreplace) %attr(0644,root,root) /etc/collectd.d/apache.conf
 %plugin_macro apache
 
 %files email
 %attr(0644,root,root) %{_libdir}/%{name}/email.so*
 %attr(0644,root,root) %{_libdir}/%{name}/email.la
-%config %attr(0644,root,root) /etc/collectd.d/email.conf
+%config(noreplace) %attr(0644,root,root) /etc/collectd.d/email.conf
+
+%files ethstat
+%plugin_macro ethstat
 
 %files ipmi
-%config %attr(0644,root,root) /etc/collectd.d/ipmi.conf
+%config(noreplace) %attr(0644,root,root) /etc/collectd.d/ipmi.conf
 %plugin_macro ipmi
 
 %if %with_iptables
 %files iptables
-%config %attr(0644,root,root) /etc/collectd.d/iptables.conf
+%config(noreplace) %attr(0644,root,root) /etc/collectd.d/iptables.conf
 %plugin_macro iptables
+%endif
 
 %files ipvs
 %plugin_macro ipvs
-%endif
+
+%files modbus
+%plugin_macro modbus
+
+%files md
+%plugin_macro md
 
 %files mysql
-%config %attr(0644,root,root) /etc/collectd.d/mysql.conf
+%config(noreplace) %attr(0644,root,root) /etc/collectd.d/mysql.conf
 %plugin_macro mysql
 
+%files numa
+%plugin_macro numa
+
 %files postgresql
-%config %attr(0644,root,root) /etc/collectd.d/postgresql.conf
+%config(noreplace) %attr(0644,root,root) /etc/collectd.d/postgresql.conf
 %plugin_macro postgresql
 
 %files nginx
-%config %attr(0644,root,root) /etc/collectd.d/nginx.conf
+%config(noreplace) %attr(0644,root,root) /etc/collectd.d/nginx.conf
 %plugin_macro nginx
 
 %files perl
-%config %attr(0644,root,root) /etc/collectd.d/perl.conf
-%exclude %{_libdir}/perl5/5.8.8/%{_arch}-linux-thread-multi/perllocal.pod
-%attr(0644,root,root) %{_libdir}/perl5/site_perl/5.8.8/%{_arch}-linux-thread-multi/auto/Collectd/.packlist
-%attr(0644,root,root) /usr/lib/perl5/site_perl/5.8.8/Collectd.pm
-%attr(0644,root,root) /usr/lib/perl5/site_perl/5.8.8/Collectd/Unixsock.pm
-%attr(0644,root,root) /usr/lib/perl5/site_perl/5.8.8/Collectd/Plugins/Monitorus.pm
-%attr(0644,root,root) /usr/lib/perl5/site_perl/5.8.8/Collectd/Plugins/OpenVZ.pm
+%config(noreplace) %attr(0644,root,root) /etc/collectd.d/perl.conf
+%exclude %{perl_archlib}/perllocal.pod
+%attr(0644,root,root) %{perl_archlib}/auto/Collectd/.packlist
+#
+%attr(0644,root,root) %{perl_privlib}/Collectd.pm
+%attr(0644,root,root) %{perl_privlib}/Collectd/Unixsock.pm
+%attr(0644,root,root) %{perl_privlib}/Collectd/Plugins/Monitorus.pm
+%attr(0644,root,root) %{perl_privlib}/Collectd/Plugins/OpenVZ.pm
 %plugin_macro perl
 
+%if "%{?rrdtool_version}" >= "1.4"
 %files rrdcached
-%config %attr(0644,root,root) /etc/collectd.d/rrdcached.conf
+%config(noreplace) %attr(0644,root,root) /etc/collectd.d/rrdcached.conf
 %plugin_macro rrdcached
+%endif
 
 %files rrdtool
-%config %attr(0644,root,root) /etc/collectd.d/rrdtool.conf
+%config(noreplace) %attr(0644,root,root) /etc/collectd.d/rrdtool.conf
 %plugin_macro rrdtool
 
 %files sensors
 %attr(0644,root,root) %{_libdir}/%{name}/sensors.so*
 %attr(0644,root,root) %{_libdir}/%{name}/sensors.la
-%config %attr(0644,root,root) /etc/collectd.d/sensors.conf
+%config(noreplace) %attr(0644,root,root) /etc/collectd.d/sensors.conf
 
 %files snmp
 %attr(0644,root,root) /etc/collectd.d/snmp.conf
 %plugin_macro snmp
 
+%files write_graphite
+%plugin_macro write_graphite
+
 %changelog
-* Fri Feb 24 2012 faxm0dem <faxm0dem@cpan.org> 5.0.3-0
+* Tue Apr 17 2012 Fabien Wernli faxm0dem@cpan.org> 5.1.0-5
 - new upstream
-- rrdcached create patch from Bruno Premont
+- add debug package
+- patch init startup script to kill only self
+- use %config(noreplace) for all config files
 
-* Tue Jan 17 2012 faxm0dem <faxm0dem@cpan.org> 5.0.1-1
-- new syslog-notif patch
-
-* Wed Oct 26 2011 faxm0dem <faxm0dem@cpan.org> 5.0.1-0
-- new upstream
-- iptables
-
-* Mon Sep 05 2011 faxm0dem <faxm0dem@cpan.org> 5.0.0
+* Mon Sep 05 2011 Fabien Wernli <faxm0dem@cpan.org> 5.0.0
 - New upstream version
 - Added /etc/sysconfig/collectd
 - Added collectd user the daemon shall start as

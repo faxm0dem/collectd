@@ -3,5 +3,5 @@
 # COLLECTD="/usr/sbin/collectd"
 # COLLECTDMONPIDIR="/var/run/collectd"
 # COLLECTDMONPID="$COLLECTDMONPIDIR/collectdmon.pid"
-RUNAS=md
+RUNAS=collectd
 
