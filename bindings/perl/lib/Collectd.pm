@@ -205,7 +205,7 @@ sub plugin_call_all {
 
 		next if ($p->{'wait_left'} > 0);
 
-		$cb_name = $p->{'cb_name'};
+		my $cbname = $cb_name = $p->{'cb_name'};
 		$status = call_by_name (@_);
 
 		if (! $status) {
@@ -219,7 +219,7 @@ sub plugin_call_all {
 			}
 
 			if (TYPE_LOG != $type) {
-				ERROR ("Execution of callback \"$cb_name\" failed: $err");
+				ERROR ("Execution of callback \"$cbname\" failed: $err");
 			}
 
 			$status = 0;

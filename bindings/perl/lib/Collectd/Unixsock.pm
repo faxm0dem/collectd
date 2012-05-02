@@ -215,6 +215,10 @@ sub getval # {{{
 	print $fh $msg;
 
 	$msg = <$fh>;
+	unless (defined $msg) {
+		cluck "getval: filehandle returned empty message";
+		return;
+	}
 	chomp ($msg);
 	_debug "<- $msg\n";
 
@@ -400,6 +404,10 @@ sub listval
 	print $fh "LISTVAL\n";
 
 	$msg = <$fh>;
+	unless (defined $msg) {
+		cluck "listval: filehandle returned empty message";
+		return;
+	}
 	chomp ($msg);
 	_debug "<- $msg\n";
 	($status, $msg) = split (' ', $msg, 2);
