@@ -53,7 +53,7 @@ use warnings;
 
 #use constant { NOTIF_FAILURE => 1, NOTIF_WARNING => 2, NOTIF_OKAY => 4 };
 
-use Carp (qw(cluck confess));
+use Carp (qw(carp confess));
 use IO::Socket::UNIX;
 use Regexp::Common (qw(number));
 
@@ -76,7 +76,7 @@ sub _create_socket
 	my $sock = IO::Socket::UNIX->new (Type => SOCK_STREAM, Peer => $path);
 	if (!$sock)
 	{
-		cluck ("Cannot open UNIX-socket $path: $!");
+		carp ("Cannot open UNIX-socket $path: $!");
 		return;
 	}
 	return ($sock);
@@ -105,7 +105,7 @@ sub _create_identifier
 
 	if (!$args->{'host'} || !$args->{'plugin'} || !$args->{'type'})
 	{
-		cluck ("Need `host', `plugin' and `type'");
+		carp ("Need `host', `plugin' and `type'");
 		return;
 	}
 
@@ -216,7 +216,7 @@ sub getval # {{{
 
 	$msg = <$fh>;
 	unless (defined $msg) {
-		cluck "getval: filehandle returned empty message";
+		carp "getval: filehandle returned empty message";
 		return;
 	}
 	chomp ($msg);
@@ -338,7 +338,7 @@ sub putval
 	$identifier = _create_identifier (\%args) or return;
 	if (!$args{'values'})
 	{
-		cluck ("Need argument `values'");
+		carp ("Need argument `values'");
 		return;
 	}
 
@@ -352,13 +352,13 @@ sub putval
 
 		if ("ARRAY" ne ref ($args{'values'}))
 		{
-			cluck ("Invalid `values' argument (expected an array ref)");
+			carp ("Invalid `values' argument (expected an array ref)");
 			return;
 		}
 
 		if (! scalar @{$args{'values'}})
 		{
-			cluck ("Empty `values' array");
+			carp ("Empty `values' array");
 			return;
 		}
 
@@ -405,7 +405,7 @@ sub listval
 
 	$msg = <$fh>;
 	unless (defined $msg) {
-		cluck "listval: filehandle returned empty message";
+		carp "listval: filehandle returned empty message";
 		return;
 	}
 	chomp ($msg);
@@ -482,12 +482,12 @@ sub putnotif
 	
 	if (!$args{'message'})
 	{
-		cluck ("Need argument `message'");
+		carp ("Need argument `message'");
 		return;
 	}
 	if (!$args{'severity'})
 	{
-		cluck ("Need argument `severity'");
+		carp ("Need argument `severity'");
 		return;
 	}
 	$args{'severity'} = lc ($args{'severity'});
@@ -495,7 +495,7 @@ sub putnotif
 		&& ($args{'severity'} ne 'warning')
 		&& ($args{'severity'} ne 'okay'))
 	{
-		cluck ("Invalid `severity: " . $args{'severity'});
+		carp ("Invalid `severity: " . $args{'severity'});
 		return;
 	}
 
@@ -582,7 +582,7 @@ sub flush
 
 			if (ref ($identifier) ne 'HASH')
 			{
-				cluck ("The argument of the `identifier' "
+				carp ("The argument of the `identifier' "
 					. "option must be an array reference "
 					. "of hash references.");
 				return;
