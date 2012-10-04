@@ -181,6 +181,19 @@ static const char *config_get_string (oconfig_item_t *ci)
   return (ci->values[0].value.string);
 } /* const char *config_get_string */
 
+static int rrd_compare_numeric (const void *a_ptr, const void *b_ptr)
+{
+  int a = *((int *) a_ptr);
+  int b = *((int *) b_ptr);
+
+  if (a < b)
+    return (-1);
+  else if (a > b)
+    return (1);
+  else
+    return (0);
+} /* int rrd_compare_numeric */
+
 static int rc_config (oconfig_item_t *ci)
 {
   int i;
@@ -235,6 +248,83 @@ static int rc_config (oconfig_item_t *ci)
         config_collect_stats = 0;
       else
         config_collect_stats = 1;
+    }
+    else if (strcasecmp ("StepSize", key) == 0)
+    {
+      int temp = atoi (value);
+      if (temp > 0)
+        rrdcreate_config.stepsize = temp;
+    }
+    else if (strcasecmp ("HeartBeat", key) == 0)
+    {
+      int temp = atoi (value);
+      if (temp > 0)
+        rrdcreate_config.heartbeat = temp;
+    }
+    else if (strcasecmp ("RRARows", key) == 0)
+    {
+      int tmp = atoi (value);
+      if (tmp <= 0)
+      {
+        fprintf (stderr, "rrdtool: `RRARows' must "
+            "be greater than 0.\n");
+        ERROR ("rrdtool: `RRARows' must "
+            "be greater than 0.\n");
+        return (1);
+      }
+      rrdcreate_config.rrarows = tmp;
+    }
+    else if (strcasecmp ("RRATimespan", key) == 0)
+    {
+      char *saveptr = NULL;
+      char *dummy;
+      char *ptr;
+      char *value_copy;
+      int *tmp_alloc;
+
+      value_copy = strdup (value);
+      if (value_copy == NULL)
+        return (1);
+
+      dummy = value_copy;
+      while ((ptr = strtok_r (dummy, ", \t", &saveptr)) != NULL)
+      {
+        dummy = NULL;
+
+        tmp_alloc = realloc (rrdcreate_config.timespans,
+            sizeof (int) * (rrdcreate_config.timespans_num + 1));
+        if (tmp_alloc == NULL)
+        {
+          fprintf (stderr, "rrdtool: realloc failed.\n");
+          ERROR ("rrdtool: realloc failed.\n");
+          free (value_copy);
+          return (1);
+        }
+        rrdcreate_config.timespans = tmp_alloc;
+        rrdcreate_config.timespans[rrdcreate_config.timespans_num] = atoi (ptr);
+        if (rrdcreate_config.timespans[rrdcreate_config.timespans_num] != 0)
+          rrdcreate_config.timespans_num++;
+      } /* while (strtok_r) */
+
+      qsort (/* base = */ rrdcreate_config.timespans,
+          /* nmemb  = */ rrdcreate_config.timespans_num,
+          /* size   = */ sizeof (rrdcreate_config.timespans[0]),
+          /* compar = */ rrd_compare_numeric);
+
+      free (value_copy);
+    }
+    else if (strcasecmp ("XFF", key) == 0)
+    {
+      double tmp = atof (value);
+      if ((tmp < 0.0) || (tmp >= 1.0))
+      {
+        fprintf (stderr, "rrdtool: `XFF' must "
+            "be in the range 0 to 1 (exclusive).");
+        ERROR ("rrdtool: `XFF' must "
+            "be in the range 0 to 1 (exclusive).");
+        return (1);
+      }
+      rrdcreate_config.xff = tmp;
     }
     else
     {
