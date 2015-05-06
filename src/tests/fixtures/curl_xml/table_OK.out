@@ -1,0 +1,7 @@
+gemaster/curl_xml-GridEngine/duration-ParallelJobs   seconds=2.000000e+00
+gemaster/curl_xml-GridEngine/duration-SequentialJobs seconds=1.000000e+00
+gemaster/curl_xml-GridEngine/gauge-ParallelJobs      value=3.000000e+00
+gemaster/curl_xml-GridEngine/gauge-Pending           value=1.275000e+03
+gemaster/curl_xml-GridEngine/gauge-Required          value=1.491000e+03
+gemaster/curl_xml-GridEngine/gauge-Running           value=1.369400e+04
+gemaster/curl_xml-GridEngine/gauge-SequentialJobs    value=2.000000e+00

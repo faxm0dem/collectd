@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<GridEngineBasicCount MasterName="mymaster" Date="05/03/2015-15:43:01">
+  <Jobs Instance="Pending">
+    <Count>1275</Count>
+  </Jobs>
+  <Jobs Instance="Running">
+    <Count>13694</Count>
+  </Jobs>
+  <Slots Instance="Required">
+    <Count>1491</Count>
+  </Slots>
+  <Slots Instance="Used">
+    <Count>16717</Count>
+  </Slots>
+  <Scheduler Instance="SequentialJobs">
+    <SpawnedJobsCount>2</SpawnedJobsCount>
+    <SchedDuration>1</SchedDuration>
+  </Scheduler>
+  <Scheduler Instance="ParallelJobs">
+    <SpawnedJobsCount>3</SpawnedJobsCount>
+    <SchedDuration>2</SchedDuration>
+  </Scheduler>
+</GridEngineBasicCount>
